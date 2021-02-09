@@ -5,8 +5,9 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const swaggerJsDoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
-
-// const PORT = process.env.PORT || 5000;
+// const { PORT } = require("./config");
+const PORT = 5000;
+const url = "mongodb://127.0.0.1:27017/memes";
 
 // swagger definition and options
 const swaggerOptions = {
@@ -29,9 +30,6 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
-
-const PORT = 5000;
-const url = "mongodb://127.0.0.1:27017/memes";
 
 mongoose.connect(url, {
   useNewUrlParser: true,

@@ -22,4 +22,10 @@ const postSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+postSchema.index(
+  { name: 1, url: 1, caption: 1 },
+  { unique: true },
+  { sparse: true }
+);
+
 mongoose.model("Post", postSchema);

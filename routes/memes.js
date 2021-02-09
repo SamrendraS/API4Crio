@@ -38,9 +38,9 @@ const Post = mongoose.model("Post");
  *       200:
  *         description: Successfully created
  */
+
 router.post("/memes", (req, res) => {
   const { name, url, caption } = req.body;
-  // console.log(name + url + caption);
   if (!name || !caption || !url) {
     return res.status(422).json({ error: "Please enter all fields" });
   }
@@ -51,61 +51,44 @@ router.post("/memes", (req, res) => {
     url,
     caption,
   });
+
+  // console.log(post);
   //Add functionality to prevent reposts
-  Post.find(post).then((item) => {
-    if (item.name === name && item.url === url && item.caption === caption)
-      return res.status(409).json({ error: "Meme already exists" });
-  });
+  // postSchema.index({ name: 1, url: 1, caption: 1 },{ unique: true },{ sparse: true });
+  // Index maintains functionality
 
   //Save Post in the database
   post
     .save()
     .then((result) => {
-      res.send({ id: result.id });
+      res.status(201).send({ id: result.id });
+      return;
     })
     .catch((err) => {
-      console.log(err);
+      res.status(409).json({ error: "Meme already exists" });
+      return;
     });
 });
 
-/**
- * @swagger
- * /memes/{id}:
- *   get:
- *     tags:
- *       - Memes
- *     description: Returns a single meme
- *     produces:
- *       - application/json
- *     parameters:
- *       - name: id
- *         description: Meme id
- *         in: path
- *         required: true
- *         type: integer
- *     responses:
- *       200:
- *         description: A single meme
- *         schema:
- *           $ref: '#/definitions/Post'
- *       404:
- *         description: Invalid ID
- */
 router.get("/memes/:id", (req, res) => {
   //Receive ID from URL
   const { id } = req.params;
   Post.findById(id)
     .then((item) => {
+      if (!item) {
+        return res.status(404).send({ message: "404: Meme not found" });
+      }
       res.send({
         id: item._id,
         name: item.name,
         url: item.url,
         caption: item.caption,
       });
+      return;
     })
     .catch((err) => {
-      res.status(404).send({ message: "404: Meme not found" });
-      console.log(err);
+      res.status(500).send(err);
+      return;
     });
 });
 
@@ -135,69 +118,37 @@ router.get("/memes", (req, res) => {
         url: item.url,
         caption: item.caption,
       }));
-      res.send(map);
+      res.status(200).send(map);
     })
     .catch((err) => {
       res.status(404).send({ message: "Could not connect" });
-      console.log(err);
+      // console.log(err);
     });
 });
 
-// /**
-//  * @swagger
-//  * /customers:
-//  *    patch:
-//  *      description: Use to return all customers
-//  *    parameters:
-//  *      - name: customer
-//  *        in: query
-//  *        description: Name of our customer
-//  *        required: false
-//  *        schema:
-//  *          type: string
-//  *          format: string
-//  *    responses:
-//  *      '201':
-//  *        description: Successfully created user
-//  */
-// router.patch("/memes/:id", (req, res) => {
-//   //Receive ID from URL
-//   const { id } = req.params;
-//   const { url, caption } = req.body;
-//   console.log(id);
-//   if (!id || (!caption && !url)) {
-//     res.status(422).json({ error: "Please enter all fields" });
-//     return;
-//   }
-//   Post.exists({ _id: id }, function (err, doc) {
-//     if (doc) {
-//       console.log(doc);
-//     } else {
-//       res.status(404).send({ message: "404: Invalid ID" });
-//       console.log("Result :", doc); // false
-//       return;
-//     }
-//   });
-//   let user_details = {
-//     url,
-//     caption,
-//   };
-//   if (!url) delete user_details.url;
-//   if (!caption) delete user_details.caption;
+router.patch("/memes/:id", (req, res) => {
+  const { id } = req.params;
+  const { url, caption } = req.body;
 
-//   Post.updateOne({ _id: id }, { $set: user_details }, function (err, result) {
-//     if (err) {
-//       res.json({
-//         message: "Something went wrong",
-//         status: 501,
-//       });
-//     }
-
-//     res.json({
-//       messages: "Post updated successfully",
-//       status: 200,
-//     });
-//   });
-// });
+  if (!caption) delete req.body.caption;
+  if (!url) delete req.body.url;
+  mongoose.set("useFindAndModify", false);
+  Post.findByIdAndUpdate(id, req.body, { new: true })
+    .then((item) => {
+      if (!item) {
+        res.status(404).send({ message: "404: Meme not found" });
+        return;
+      }
+      if (!id || (!caption && !url)) {
+        res.status(422).json({ error: "Please enter required fields" });
+        return;
+      }
+      res.status(200).send({ message: "200: Meme updated  " });
+      return;
+    })
+    .catch((error) => {
+      res.status(500).send(error);
+    });
+});
 
 module.exports = router;
