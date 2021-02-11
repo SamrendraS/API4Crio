@@ -27,5 +27,6 @@ postSchema.index(
   { unique: true },
   { sparse: true }
 );
+postSchema.index({ createdAt: -1 });
 
 mongoose.model("Post", postSchema);

@@ -11,12 +11,111 @@ const Post = mongoose.model("Post");
  *   Post:
  *     properties:
  *       name:
- *         type: string
+ *          type: string
+ *          description: The name of the poster
  *       url:
- *         type: string
+ *          type: string
+ *          description: Link to the meme
  *       caption:
- *         type: string
+ *          type: string
+ *          description: Caption for the meme
+ *       example:
+ *          name: Ashok Kumar
+ *          url: https://images.pexels.com/photos/3573382/pexels-photo-3573382.jpeg
+ *          caption: This is a meme
  */
+
+/**
+ * @swagger
+ * tags:
+ *  name: Memes
+ *  description: API to manage your memes.
+ */
+
+/**
+ * @swagger
+ * /memes:
+ *   get:
+ *     tags:
+ *       - Memes
+ *     description: Returns all memes
+ *     produces:
+ *       - application/json
+ *     responses:
+ *       200:
+ *         description: An array of memes
+ *         schema:
+ *           $ref: '#/definitions/Post'
+ *       404:
+ *         description: Error connecting to server
+ */
+
+router.get("/memes", (req, res) => {
+  Post.find()
+    .sort("-createdAt") //Return latest posts
+    .limit(100) //Return only 100 posts
+    .then((posts) => {
+      const map = posts.map((item) => ({
+        id: item._id,
+        name: item.name,
+        url: item.url,
+        caption: item.caption,
+      }));
+      res.status(200).send(map);
+    })
+    .catch((err) => {
+      res.status(404).send({ message: "Could not connect" });
+      // console.log(err);
+    });
+});
+
+/**
+ * @swagger
+ * /memes/{id}:
+ *   get:
+ *     tags:
+ *       - Memes
+ *     description: Returns a single meme
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: id
+ *         description: Meme id
+ *         in: path
+ *         required: true
+ *         type: integer
+ *     responses:
+ *       200:
+ *         description: A single meme
+ *         schema:
+ *           $ref: '#/definitions/Post'
+ *       404:
+ *         description: Invalid meme ID
+ *         schema:
+ *           $ref: '#/definitions/Post'
+ */
+
+router.get("/memes/:id", (req, res) => {
+  //Receive ID from URL
+  const { id } = req.params;
+  Post.findById(id)
+    .then((item) => {
+      if (!item) {
+        return res.status(404).send({ message: "404: Meme not found" });
+      }
+      res.send({
+        id: item._id,
+        name: item.name,
+        url: item.url,
+        caption: item.caption,
+      });
+      return;
+    })
+    .catch((err) => {
+      res.status(404).send({ message: "404: Meme not found" });
+      return;
+    });
+});
 
 /**
  * @swagger
@@ -28,17 +127,20 @@ const Post = mongoose.model("Post");
  *     produces:
  *       - application/json
  *     parameters:
- *       - name: Meme
+ *       - name: meme
  *         description: Post object
  *         in: body
  *         required: true
  *         schema:
  *           $ref: '#/definitions/Post'
  *     responses:
- *       200:
+ *       201:
  *         description: Successfully created
+ *       422:
+ *         description: Incomplete form data
+ *       409:
+ *         description: Duplicate meme posted
  */
-
 router.post("/memes", (req, res) => {
   const { name, url, caption } = req.body;
   if (!name || !caption || !url) {
@@ -70,61 +172,32 @@ router.post("/memes", (req, res) => {
     });
 });
 
-router.get("/memes/:id", (req, res) => {
-  //Receive ID from URL
-  const { id } = req.params;
-  Post.findById(id)
-    .then((item) => {
-      if (!item) {
-        return res.status(404).send({ message: "404: Meme not found" });
-      }
-      res.send({
-        id: item._id,
-        name: item.name,
-        url: item.url,
-        caption: item.caption,
-      });
-      return;
-    })
-    .catch((err) => {
-      res.status(500).send(err);
-      return;
-    });
-});
-
 /**
  * @swagger
- * /memes:
- *   get:
+ * /memes/{id}:
+ *   patch:
  *     tags:
- *       - Memes
- *     description: Returns latest 100 memes
+ *      - Memes
+ *     description: Updates a single Meme
  *     produces:
  *       - application/json
+ *     parameters:
+ *       - name: meme
+ *         description: Post object
+ *         in: body
+ *         required: true
+ *         schema:
+ *           $ref: '#/definitions/Post'
  *     responses:
  *       200:
- *         description: An array of memes
- *         schema:
- *           $ref:  '#/definitions/Post'
+ *         description: Successfully updated
+ *       404:
+ *         description: Meme not found
+ *       422:
+ *         description: Incomplete form data
+ *       500:
+ *         description: Error
  */
-router.get("/memes", (req, res) => {
-  Post.find()
-    .sort("-createdAt") //Return latest posts
-    .limit(100) //Return only 100 posts
-    .then((posts) => {
-      const map = posts.map((item) => ({
-        id: item._id,
-        name: item.name,
-        url: item.url,
-        caption: item.caption,
-      }));
-      res.status(200).send(map);
-    })
-    .catch((err) => {
-      res.status(404).send({ message: "Could not connect" });
-      // console.log(err);
-    });
-});
 
 router.patch("/memes/:id", (req, res) => {
   const { id } = req.params;
@@ -135,6 +208,7 @@ router.patch("/memes/:id", (req, res) => {
   mongoose.set("useFindAndModify", false);
   Post.findByIdAndUpdate(id, req.body, { new: true })
     .then((item) => {
+      console.log(item);
       if (!item) {
         res.status(404).send({ message: "404: Meme not found" });
         return;
