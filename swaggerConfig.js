@@ -23,8 +23,8 @@ module.exports = {
           description: "Local server",
         },
         {
-          url: "https://app-dev.herokuapp.com/api/v1",
-          description: "DEV Env",
+          url: "https://xmeme-samrendra.herokuapp.com/",
+          description: "Dev env",
         },
       ],
     },

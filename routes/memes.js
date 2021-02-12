@@ -7,22 +7,28 @@ const Post = mongoose.model("Post");
 
 /**
  * @swagger
- * definitions:
- *   Post:
- *     properties:
- *       name:
- *          type: string
- *          description: The name of the poster
- *       url:
- *          type: string
- *          description: Link to the meme
- *       caption:
- *          type: string
- *          description: Caption for the meme
- *       example:
- *          name: Ashok Kumar
- *          url: https://images.pexels.com/photos/3573382/pexels-photo-3573382.jpeg
- *          caption: This is a meme
+ * components:
+ *  schemas:
+ *      Meme:
+ *          type: object
+ *          required:
+ *            - name
+ *            - url
+ *            - caption
+ *          properties:
+ *              name:
+ *                  type: string
+ *                  description: Name of the meme poster
+ *              url:
+ *                  type: string
+ *                  description: Link of the meme
+ *              caption:
+ *                  type: string
+ *                  description: caption of meme
+ *          example:
+ *              name: Samrendra
+ *              url: https://i.redd.it/pb008vv10yg61.jpg
+ *              caption: Amazing power!
  */
 
 /**
@@ -35,19 +41,21 @@ const Post = mongoose.model("Post");
 /**
  * @swagger
  * /memes:
- *   get:
- *     tags:
- *       - Memes
- *     description: Returns all memes
- *     produces:
- *       - application/json
- *     responses:
- *       200:
- *         description: An array of memes
- *         schema:
- *           $ref: '#/definitions/Post'
- *       404:
- *         description: Error connecting to server
+ *     get:
+ *         summary:  Returns all memes
+ *         tags: [Memes]
+ *         responses:
+ *             200:
+ *                 description: Returns all memes
+ *                 content:
+ *                     application/json:
+ *                         schema:
+ *                             type: array
+ *                             items:
+ *                             $ref: '#/components/schemas/Meme'
+ *             404:
+ *                 description: Error connecting to server
+ *
  */
 
 router.get("/memes", (req, res) => {
@@ -73,26 +81,24 @@ router.get("/memes", (req, res) => {
  * @swagger
  * /memes/{id}:
  *   get:
- *     tags:
- *       - Memes
- *     description: Returns a single meme
- *     produces:
- *       - application/json
+ *     summary: Get the meme by id
+ *     tags: [Memes]
  *     parameters:
- *       - name: id
- *         description: Meme id
- *         in: path
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
  *         required: true
- *         type: integer
+ *         description: Meme id
  *     responses:
  *       200:
  *         description: A single meme
- *         schema:
- *           $ref: '#/definitions/Post'
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Meme'
  *       404:
  *         description: Invalid meme ID
- *         schema:
- *           $ref: '#/definitions/Post'
  */
 
 router.get("/memes/:id", (req, res) => {
@@ -121,26 +127,36 @@ router.get("/memes/:id", (req, res) => {
  * @swagger
  * /memes:
  *   post:
- *     tags:
- *       - Memes
- *     description: Creates a new meme
- *     produces:
- *       - application/json
- *     parameters:
- *       - name: meme
- *         description: Post object
- *         in: body
- *         required: true
- *         schema:
- *           $ref: '#/definitions/Post'
+ *     summary: Creates a new meme
+ *     tags: [Memes]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Meme'
  *     responses:
  *       201:
  *         description: Successfully created
- *       422:
- *         description: Incomplete form data
+ *         content:
+ *           application/json:
+ *             schema:
+ *                  type: object
+ *                  required:
+ *                      - id:
+ *                  properties:
+ *                      id:
+ *                          type: string
+ *                          description: Auto Generated unique id for each meme
+ *                  example:
+ *                          id: 6026c2881131aa2723f71a03
+ *
  *       409:
  *         description: Duplicate meme posted
+ *       422:
+ *         description: Incomplete form data
  */
+
 router.post("/memes", (req, res) => {
   const { name, url, caption } = req.body;
   if (!name || !caption || !url) {
@@ -154,10 +170,7 @@ router.post("/memes", (req, res) => {
     caption,
   });
 
-  // console.log(post);
-  //Add functionality to prevent reposts
-  // postSchema.index({ name: 1, url: 1, caption: 1 },{ unique: true },{ sparse: true });
-  // Index maintains functionality
+  // Index maintains control on duplicates
 
   //Save Post in the database
   post
@@ -175,27 +188,30 @@ router.post("/memes", (req, res) => {
 /**
  * @swagger
  * /memes/{id}:
- *   patch:
- *     tags:
- *      - Memes
- *     description: Updates a single Meme
- *     produces:
- *       - application/json
- *     parameters:
- *       - name: meme
- *         description: Post object
- *         in: body
- *         required: true
- *         schema:
- *           $ref: '#/definitions/Post'
- *     responses:
- *       200:
+ *  patch:
+ *    summary: Update the meme by its id
+ *    tags: [Memes]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        schema:
+ *          type: string
+ *        required: true
+ *        description: The Meme id
+ *    requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/Meme'
+ *    responses:
+ *      200:
  *         description: Successfully updated
- *       404:
+ *      404:
  *         description: Meme not found
- *       422:
+ *      422:
  *         description: Incomplete form data
- *       500:
+ *      500:
  *         description: Error
  */
 
@@ -205,10 +221,10 @@ router.patch("/memes/:id", (req, res) => {
 
   if (!caption) delete req.body.caption;
   if (!url) delete req.body.url;
+
   mongoose.set("useFindAndModify", false);
   Post.findByIdAndUpdate(id, req.body, { new: true })
     .then((item) => {
-      console.log(item);
       if (!item) {
         res.status(404).send({ message: "404: Meme not found" });
         return;

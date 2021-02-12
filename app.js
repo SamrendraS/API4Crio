@@ -4,7 +4,7 @@ const app = express();
 const mongoose = require("mongoose");
 const cors = require("cors");
 
-const PORT = process.env.PORT || 8081;
+const PORT = 8081;
 const swaggerPort = 8080;
 const url = "mongodb://127.0.0.1:27017/memes";
 
@@ -17,12 +17,13 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use("/swagger-ui/", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 app.listen(swaggerPort, () => {
-  console.log("Swagger up and running on" + swaggerPort);
+  console.log("Swagger connected:" + swaggerPort);
 });
 
 mongoose.connect(url, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+  useCreateIndex: true,
 });
 
 const db = mongoose.connection;
